@@ -23,6 +23,9 @@ db.once("open", () => console.log("Connected to MongoDB"));
 const authRoutes = require("./routes/authRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 
+// Test
+app.get("/", (req, res) => res.send("Hello world"));
+
 // V1 as the namespace
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/blogs", blogRoutes);
