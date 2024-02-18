@@ -10,11 +10,7 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 app.use(bodyParser.json());
 
-app.use(
-  cors({
-    origin: "https://mern-blog-fe-sigma.vercel.app",
-  })
-);
+app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URL, {});
