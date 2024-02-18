@@ -7,9 +7,14 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+const corsOptions = {
+  origin: "https://mern-blog-fe-sigma.vercel.app",
+  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
 // Middleware
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URL, {});
