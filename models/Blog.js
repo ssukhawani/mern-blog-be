@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const blogSchema = new mongoose.Schema({
   heading: { type: String, required: true },
   body: { type: String, required: true },
+  slug: { type: String, required: true },
   posted_date: { type: Date, default: Date.now },
   author: {
     type: mongoose.Schema.Types.ObjectId,

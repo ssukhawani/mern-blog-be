@@ -10,6 +10,7 @@ router.post(
   [
     body("heading", "Heading is required").notEmpty(),
     body("body", "Body is required").notEmpty(),
+    body("slug", "Slug is required").notEmpty(),
     isAuthenticated,
   ],
   async (req, res) => {
@@ -20,11 +21,12 @@ router.post(
     }
 
     try {
-      const { heading, body } = req.body;
+      const { heading, body, slug } = req.body;
 
       const newBlog = new Blog({
         heading,
         body,
+        slug,
         author: req.user,
       });
 
@@ -43,6 +45,7 @@ router.put(
   [
     body("heading", "Heading is required").notEmpty(),
     body("body", "Body is required").notEmpty(),
+    body("slug", "Slug is required").notEmpty(),
     isAuthenticated,
   ],
   async (req, res) => {
@@ -53,7 +56,7 @@ router.put(
     }
 
     try {
-      const { heading, body } = req.body;
+      const { heading, body, slug } = req.body;
 
       // Check if the user is the author of the blog
       const blog = await Blog.findById(req.params.id);
@@ -65,7 +68,7 @@ router.put(
 
       const updatedBlog = await Blog.findByIdAndUpdate(
         req.params.id,
-        { heading, body },
+        { heading, body, slug },
         { new: true }
       );
 
@@ -110,6 +113,13 @@ router.get("/", isAuthenticated, async (req, res) => {
   try {
     // Filter blogs by the logged-in user's ID
     const blogs = await Blog.find({ author: req.user._id });
+    if (blogs.length === 0) {
+      // No blogs found for the logged-in user
+      return res
+        .status(404)
+        .json({ message: "No blogs available for the logged-in user" });
+    }
+
     res.json(blogs);
   } catch (error) {
     console.error(error);
@@ -121,6 +131,12 @@ router.get("/", isAuthenticated, async (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const blogs = await Blog.find();
+
+    if (blogs.length === 0) {
+      // No blogs found
+      return res.status(404).json({ message: "No blogs available" });
+    }
+
     res.json(blogs);
   } catch (error) {
     console.error(error);
