@@ -11,6 +11,16 @@ router.post(
     body("heading", "Heading is required").notEmpty(),
     body("body", "Body is required").notEmpty(),
     body("slug", "Slug is required").notEmpty(),
+    body("slug").custom(async (value, { req }) => {
+      // Check if there is another blog with the same slug
+      const existingBlog = await Blog.findOne({ slug: value });
+      if (existingBlog && existingBlog.slug !== req.params.slug) {
+        throw new Error(
+          `The slug '${value}' is already in use. Please choose a different one.`
+        );
+      }
+      return true;
+    }),
     isAuthenticated,
   ],
   async (req, res) => {
@@ -41,7 +51,7 @@ router.post(
 
 // Update Blog (requires authentication and authorization)
 router.put(
-  "/:id",
+  "/:slug",
   [
     body("heading", "Heading is required").notEmpty(),
     body("body", "Body is required").notEmpty(),
@@ -59,15 +69,15 @@ router.put(
       const { heading, body, slug } = req.body;
 
       // Check if the user is the author of the blog
-      const blog = await Blog.findById(req.params.id);
+      const blog = await Blog.findOne({ slug: req.params.slug });
       if (!blog || blog.author.toString() !== req.user._id.toString()) {
         return res
           .status(403)
           .json({ message: "Forbidden: You are not the author of this blog" });
       }
 
-      const updatedBlog = await Blog.findByIdAndUpdate(
-        req.params.id,
+      const updatedBlog = await Blog.findOneAndUpdate(
+        { slug: req.params.slug },
         { heading, body, slug },
         { new: true }
       );
@@ -84,18 +94,18 @@ router.put(
   }
 );
 
-// Delete Blog ( Only user who is owner of the blog can delete that blog )
-router.delete("/:id", isAuthenticated, async (req, res) => {
+// Delete Blog (Only user who is the owner of the blog can delete that blog)
+router.delete("/:slug", isAuthenticated, async (req, res) => {
   try {
     // Check if the user is the author of the blog
-    const blog = await Blog.findById(req.params.id);
+    const blog = await Blog.findOne({ slug: req.params.slug });
     if (!blog || blog.author.toString() !== req.user._id.toString()) {
       return res
         .status(403)
         .json({ message: "Forbidden: You are not the author of this blog" });
     }
 
-    const deletedBlog = await Blog.findByIdAndDelete(req.params.id);
+    const deletedBlog = await Blog.findOneAndDelete({ slug: req.params.slug });
 
     if (!deletedBlog) {
       return res.status(404).json({ message: "Blog not found" });
@@ -130,7 +140,10 @@ router.get("/", isAuthenticated, async (req, res) => {
 // Get All Blogs
 router.get("/all", async (req, res) => {
   try {
-    const blogs = await Blog.find();
+    const blogs = await Blog.find().populate(
+      "author",
+      "username email profilePicture"
+    );
 
     if (blogs.length === 0) {
       // No blogs found
@@ -144,16 +157,30 @@ router.get("/all", async (req, res) => {
   }
 });
 
-// Get Blog by ID
-router.get("/:id", async (req, res) => {
+// Get Blog by Slug with Author Details
+router.get("/:slug", async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id);
+    const blog = await Blog.findOne({ slug: req.params.slug }).populate(
+      "author",
+      "username profilePicture"
+    );
 
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
 
-    res.json(blog);
+    res.json({
+      _id: blog._id,
+      heading: blog.heading,
+      body: blog.body,
+      slug: blog.slug,
+      posted_date: blog.posted_date,
+      author: {
+        _id: blog.author._id,
+        username: blog.author.username,
+        profilePicture: blog.author.profilePicture,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
